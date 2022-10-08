@@ -9,7 +9,7 @@
 use std::collections::HashMap;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedSet, LazyOption, UnorderedMap};
-use near_sdk::{env, log, require, near_bindgen, PanicOnDefault, AccountId, CryptoHash, Balance, Promise};
+use near_sdk::{env, log, require, near_bindgen, PanicOnDefault, AccountId, CryptoHash, Balance, Promise, ext_contract, Gas,  PromiseResult};
 use near_sdk::{serde::{self, Serialize, Deserialize}, json_types::{Base64VecU8, U128}};
 
 use crate::internal::*;
