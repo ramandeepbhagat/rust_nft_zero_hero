@@ -9,7 +9,7 @@
 use std::collections::HashMap;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedSet, LazyOption, UnorderedMap};
-use near_sdk::{env, log, require, near_bindgen, PanicOnDefault, AccountId, CryptoHash, Balance, Promise, ext_contract, Gas,  PromiseResult};
+use near_sdk::{env, log, require, near_bindgen, PanicOnDefault, AccountId, CryptoHash, Balance, Promise, ext_contract, Gas,  PromiseResult, PromiseOrValue};
 use near_sdk::{serde::{self, Serialize, Deserialize}, json_types::{Base64VecU8, U128}};
 
 use crate::internal::*;
@@ -103,8 +103,8 @@ impl Contract {
             owner_id,
             NFTContractMetadata {
                 spec: "nft-1.0.0".to_string(),
-                name: "DREAMY NIGHTS".to_string(),
-                symbol: "DYNS".to_string(),
+                name: "NFT Tutorial Contract".to_string(),
+                symbol: "NFTTC".to_string(),
                 icon: None,
                 base_uri: None,
                 reference: None,
@@ -112,6 +112,10 @@ impl Contract {
             },
         )
     }
+
+    // pub fn update_metadata(&mut self, metadata: NFTContractMetadata) {
+    //     self.update_nft_metadata(metadata);
+    // }
 }
 
 /*

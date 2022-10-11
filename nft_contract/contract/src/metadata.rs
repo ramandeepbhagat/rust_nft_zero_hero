@@ -56,8 +56,10 @@ pub struct Payout {
 }
 
 pub trait NonFungibleTokenMetadata {
-    //view call for returning the contract metadata
+    // view call for returning the contract metadata
     fn nft_metadata(&self) -> NFTContractMetadata;
+
+    // fn update_nft_metadata(&mut self, data: NFTContractMetadata) -> NFTContractMetadata;
 }
 
 #[near_bindgen]
@@ -65,4 +67,17 @@ impl NonFungibleTokenMetadata for Contract {
     fn nft_metadata(&self) -> NFTContractMetadata {
         self.metadata.get().unwrap()
     }
+
+    // fn update_nft_metadata(&mut self, data: NFTContractMetadata) -> NFTContractMetadata {
+    //     let mut md = self.metadata.get().unwrap();
+    //     md.spec = data.spec.to_string();
+    //     md.name = data.name.to_string();
+    //     md.symbol = data.symbol.to_string();
+    //     md.icon = None;
+    //     md.base_uri = None;
+    //     md.reference = None;
+    //     md.reference_hash = None;
+
+    //     self.metadata.replace(&md).unwrap()
+    // }
 }

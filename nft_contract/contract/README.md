@@ -43,6 +43,7 @@ impl Contract {
 <br />
 
 ## 1. Build and Deploy the Contract
+
 You can automatically compile and deploy the contract in the NEAR testnet by running:
 
 ```bash
@@ -57,6 +58,33 @@ cat ./neardev/dev-account
 ```
 
 <br />
+<!-- 1st -->
+export NFT_CONTRACT_ID="aaa.testnet"
+export OTHER_NFT_CONTRACT_ID="bbb.testnet"
+
+echo $NFT_CONTRACT_ID
+
+near deploy --wasmFile contract/target/wasm32-unknown-unknown/release/nft_contract.wasm --accountId $NFT_CONTRACT_ID
+
+near call $NFT_CONTRACT_ID new_default_meta '{"owner_id": "'$NFT_CONTRACT_ID'"}' --accountId $NFT_CONTRACT_ID
+
+near call $NFT_CONTRACT_ID update_metadata '{"metadata": {"spec": "nft-1.0.0", "name": "NFT Tutorial Contract", "symbol": "NFTTC"}}' --accountId $NFT_CONTRACT_ID
+
+near call $NFT_CONTRACT_ID nft_metadata '{}' --accountId $NFT_CONTRACT_ID
+
+near call $NFT_CONTRACT_ID nft_mint '{"token_id": "tk-1", "metadata": {"title": "Dreamy Nights", "description": "Testing the transfer call function", "media": "https://gateway.pinata.cloud/ipfs/QmekQYu4pgFWhk43E1bQowABCPUWhvZQ3qdjK9H7FeDUpJ"}, "receiver_id": "'$NFT_CONTRACT_ID'"}' --accountId $NFT_CONTRACT_ID --amount 0.1
+
+near view $NFT_CONTRACT_ID nft_tokens '{}'
+
+near view $NFT_CONTRACT_ID nft_token '{"token_id": "tk-1"}'
+
+near view $NFT_CONTRACT_ID nft_tokens_for_owner '{"account_id": "'$NFT_CONTRACT_ID'"}'
+
+near view $NFT_CONTRACT_ID nft_supply_for_owner '{"account_id": "'$NFT_CONTRACT_ID'"}'
+
+near call $NFT_CONTRACT_ID nft_transfer '{"receiver_id": "'$OTHER_NFT_CONTRACT_ID'", "token_id": "tk-1", "msg": "foo"}' --accountId $NFT_CONTRACT_ID --depositYocto 1 --gas 200000000000000
+
+near call $NFT_CONTRACT_ID nft_transfer_call '{"receiver_id": "'$OTHER_NFT_CONTRACT_ID'", "token_id": "tk-1", "msg": "foo"}' --accountId $NFT_CONTRACT_ID --depositYocto 1 --gas 200000000000000
 
 ## 2. Retrieve the Greeting
 
@@ -72,6 +100,7 @@ near view <dev-account> get_greeting
 <br />
 
 ## 3. Store a New Greeting
+
 `set_greeting` changes the contract's state, for which it is a `change` method.
 
 `Change` methods can only be invoked using a NEAR account, since the account needs to pay GAS for the transaction.
