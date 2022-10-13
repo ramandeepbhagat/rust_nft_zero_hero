@@ -65,18 +65,18 @@ impl NonFungibleTokenReceiver for Contract {
         );
 
         match msg.as_str() {
-            "return-it-now" => Self::ext(env::current_account_id())
+            "return-it-now" => ext_nft_receiver::ext(env::current_account_id())
                     .ok_go(true).into(),
             "return-it-later" => {
                 // Call ok_go with no attached deposit and all unspent GAS (weight of 1)
-                Self::ext(env::current_account_id())
+                ext_nft_receiver::ext(env::current_account_id())
                     .ok_go(true).into()
             }
-            "keep-it-now" => Self::ext(env::current_account_id())
+            "keep-it-now" => ext_nft_receiver::ext(env::current_account_id())
                     .ok_go(false).into(),
             "keep-it-later" => {
                 // Call ok_go with no attached deposit and all unspent GAS (weight of 1)
-                Self::ext(env::current_account_id())
+                ext_nft_receiver::ext(env::current_account_id())
                     .ok_go(false).into()
             }
             _ => env::panic_str("unsupported msg"),
