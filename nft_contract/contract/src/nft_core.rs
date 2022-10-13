@@ -26,7 +26,7 @@ pub trait NonFungibleTokenCore {
     ) -> PromiseOrValue<bool>;
 }
 
-#[ext_contract(ext_non_fungible_token_receiver)]
+#[ext_contract(ext_nft_receiver)]
 trait NonFungibleTokenReceiver {
     //Method stored on the receiver contract that is called via cross contract call when nft_transfer_call is called
     /// Returns `true` if the token should be returned back to the sender.
@@ -37,6 +37,51 @@ trait NonFungibleTokenReceiver {
         token_id: TokenId,
         msg: String,
     ) -> Promise;
+
+    fn ok_go(&self, return_it: bool) -> PromiseOrValue<bool>;
+}
+
+#[near_bindgen]
+impl NonFungibleTokenReceiver for Contract {
+    fn ok_go(&self, return_it: bool) -> PromiseOrValue<bool> {
+        log!("in ok_go, return_it={}", return_it);
+        PromiseOrValue::Value(return_it)
+    }
+
+    fn nft_on_transfer(
+        &mut self,
+        sender_id: AccountId,
+        previous_owner_id: AccountId,
+        token_id: TokenId,
+        msg: String,
+    ) -> Promise {
+        log!(
+            "inside nft_on_transfer; predecessor_account_id={}, sender_id={}, previous_owner_id={}, token_id={}, msg={}",
+            &env::predecessor_account_id(),
+            &sender_id,
+            &previous_owner_id,
+            &token_id,
+            msg
+        );
+
+        match msg.as_str() {
+            "return-it-now" => Self::ext(env::current_account_id())
+                    .ok_go(true).into(),
+            "return-it-later" => {
+                // Call ok_go with no attached deposit and all unspent GAS (weight of 1)
+                Self::ext(env::current_account_id())
+                    .ok_go(true).into()
+            }
+            "keep-it-now" => Self::ext(env::current_account_id())
+                    .ok_go(false).into(),
+            "keep-it-later" => {
+                // Call ok_go with no attached deposit and all unspent GAS (weight of 1)
+                Self::ext(env::current_account_id())
+                    .ok_go(false).into()
+            }
+            _ => env::panic_str("unsupported msg"),
+        }
+    }
 }
 
 #[ext_contract(ext_self)]
@@ -192,7 +237,7 @@ impl NonFungibleTokenCore for Contract {
 
         // Initiating receiver's call and the callback
         // Defaulting GAS weight to 1, no attached deposit, and static GAS equal to the GAS for nft on transfer.
-        ext_non_fungible_token_receiver::ext(receiver_id.clone())
+        ext_nft_receiver::ext(receiver_id.clone())
             .with_static_gas(GAS_FOR_NFT_ON_TRANSFER)
             .nft_on_transfer(
                 sender_id,
@@ -201,7 +246,7 @@ impl NonFungibleTokenCore for Contract {
                 msg
             ).then(
                 // Defaulting GAS weight to 1, no attached deposit, and static GAS equal to the GAS for resolve transfer
-                Self::ext(env::current_account_id())
+                ext_self::ext(env::current_account_id())
                     .with_static_gas(GAS_FOR_RESOLVE_TRANSFER)
                     .nft_resolve_transfer(
                         previous_token.owner_id,

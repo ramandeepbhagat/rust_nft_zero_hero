@@ -85,6 +85,19 @@ impl Contract {
                 StorageKey::NFTContractMetadata.try_to_vec().unwrap(),
                 Some(&metadata),
             ),
+
+            //Storage keys are simply the prefixes used for the collections. This helps avoid data collision
+            /* tokens_per_owner: LookupMap::new(b"a"),
+            tokens_by_id: LookupMap::new(b"c"),
+            token_metadata_by_id: UnorderedMap::new(
+                b"d"
+            ),
+            //set the owner_id field equal to the passed in owner_id.
+            owner_id,
+            metadata: LazyOption::new(
+                b"e",
+                Some(&metadata),
+            ), */
         };
 
         //return the Contract object
