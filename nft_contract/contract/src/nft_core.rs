@@ -26,145 +26,139 @@ pub trait NonFungibleTokenCore {
     ) -> PromiseOrValue<bool>;
 }
 
-#[ext_contract(ext_nft_receiver)]
-trait NonFungibleTokenReceiver {
-    //Method stored on the receiver contract that is called via cross contract call when nft_transfer_call is called
-    /// Returns `true` if the token should be returned back to the sender.
-    fn nft_on_transfer(
-        &mut self,
-        sender_id: AccountId,
-        previous_owner_id: AccountId,
-        token_id: TokenId,
-        msg: String,
-    ) -> Promise;
+// #[ext_contract(ext_nft_receiver)]
+// trait NonFungibleTokenReceiver {
+//     //Method stored on the receiver contract that is called via cross contract call when nft_transfer_call is called
+//     /// Returns `true` if the token should be returned back to the sender.
+//     fn nft_on_transfer(
+//         &mut self,
+//         sender_id: AccountId,
+//         previous_owner_id: AccountId,
+//         token_id: TokenId,
+//         msg: String,
+//     ) -> PromiseOrValue<bool>;
 
-    fn ok_go(&self, return_it: bool) -> PromiseOrValue<bool>;
-}
+//     // fn ok_go(&self, return_it: bool) -> PromiseOrValue<bool>;
+// }
 
-#[near_bindgen]
-impl NonFungibleTokenReceiver for Contract {
-    fn ok_go(&self, return_it: bool) -> PromiseOrValue<bool> {
-        log!("in ok_go, return_it={}", return_it);
-        PromiseOrValue::Value(return_it)
-    }
+// #[near_bindgen]
+// impl NonFungibleTokenReceiver for Contract {
+//     // fn ok_go(&self, return_it: bool) -> PromiseOrValue<bool> {
+//     //     log!("in ok_go, return_it={}", return_it);
+//     //     PromiseOrValue::Value(return_it)
+//     // }
 
-    fn nft_on_transfer(
-        &mut self,
-        sender_id: AccountId,
-        previous_owner_id: AccountId,
-        token_id: TokenId,
-        msg: String,
-    ) -> Promise {
-        log!(
-            "inside nft_on_transfer; predecessor_account_id={}, sender_id={}, previous_owner_id={}, token_id={}, msg={}",
-            &env::predecessor_account_id(),
-            &sender_id,
-            &previous_owner_id,
-            &token_id,
-            msg
-        );
+//     fn nft_on_transfer(
+//         &mut self,
+//         sender_id: AccountId,
+//         previous_owner_id: AccountId,
+//         token_id: TokenId,
+//         msg: String,
+//     ) -> PromiseOrValue<bool> {
+//         log!(
+//             "inside nft_on_transfer; predecessor_account_id={}, sender_id={}, previous_owner_id={}, token_id={}, msg={}",
+//             &env::predecessor_account_id(),
+//             &sender_id,
+//             &previous_owner_id,
+//             &token_id,
+//             &msg
+//         );
 
-        match msg.as_str() {
-            "return-it-now" => ext_nft_receiver::ext(env::current_account_id())
-                    .ok_go(true).into(),
-            "return-it-later" => {
-                // Call ok_go with no attached deposit and all unspent GAS (weight of 1)
-                ext_nft_receiver::ext(env::current_account_id())
-                    .ok_go(true).into()
-            }
-            "keep-it-now" => ext_nft_receiver::ext(env::current_account_id())
-                    .ok_go(false).into(),
-            "keep-it-later" => {
-                // Call ok_go with no attached deposit and all unspent GAS (weight of 1)
-                ext_nft_receiver::ext(env::current_account_id())
-                    .ok_go(false).into()
-            }
-            _ => env::panic_str("unsupported msg"),
-        }
-    }
-}
+//         match msg.as_str() {
+//             "return-it-now" => PromiseOrValue::Value(true),
+//             "return-it-later" => {
+//                 // Call ok_go with no attached deposit and all unspent GAS (weight of 1)
+//                 Self::ext(env::current_account_id())
+//                     .ok_go(true).into()
+//             }
+//             "keep-it-now" => PromiseOrValue::Value(false),
+//             "keep-it-later" => {
+//                 // Call ok_go with no attached deposit and all unspent GAS (weight of 1)
+//                 Self::ext(env::current_account_id())
+//                     .ok_go(false).into()
+//             }
+//             _ => env::panic_str("unsupported msg"),
+//         }
+//     }
+// }
 
-#[ext_contract(ext_self)]
-trait NonFungibleTokenResolver {
-    /*
-        resolves the promise of the cross contract call to the receiver contract
-        this is stored on THIS contract and is meant to analyze what happened in the cross contract call when nft_on_transfer was called
-        as part of the nft_transfer_call method
-    */
-    fn nft_resolve_transfer(
-        &mut self,
-        owner_id: AccountId,
-        receiver_id: AccountId,
-        token_id: TokenId,
-    ) -> bool;
-}
+// #[ext_contract(ext_self)]
+// trait NonFungibleTokenResolver {
+//     /*
+//         resolves the promise of the cross contract call to the receiver contract
+//         this is stored on THIS contract and is meant to analyze what happened in the cross contract call when nft_on_transfer was called
+//         as part of the nft_transfer_call method
+//     */
+//     fn nft_resolve_transfer(
+//         &mut self,
+//         owner_id: AccountId,
+//         receiver_id: AccountId,
+//         token_id: TokenId,
+//     ) -> bool;
+// }
 
-#[near_bindgen]
-impl NonFungibleTokenResolver for Contract {
-    // resolves the cross contract call when calling nft_on_transfer in the nft_transfer_call method
-    // returns true if the token was successfully transferred to the receiver_id
-    #[private]
-    fn nft_resolve_transfer(
-        &mut self,
-        owner_id: AccountId,
-        receiver_id: AccountId,
-        token_id: TokenId,
-    ) -> bool {
-        // Whether receiver wants to return token back to the sender, based on `nft_on_transfer`
-        // call result.
-        if let PromiseResult::Successful(value) = env::promise_result(0) {
-            // As per the standard, the nft_on_transfer should return whether we should return the token to it's owner or not
-            if let Ok(return_token) = near_sdk::serde_json::from_slice::<bool>(&value) {
-                // if we need don't need to return the token, we simply return true meaning everything went fine
-                if !return_token {
-                    /*
-                        since we've already transferred the token and nft_on_transfer returned false, we don't have to
-                        revert the original transfer and thus we can just return true since nothing went wrong.
-                    */
-                    return true;
-                }
-            }
-        }
+// #[near_bindgen]
+// impl NonFungibleTokenResolver for Contract {
+//     // resolves the cross contract call when calling nft_on_transfer in the nft_transfer_call method
+//     // returns true if the token was successfully transferred to the receiver_id
+//     #[private]
+//     fn nft_resolve_transfer(
+//         &mut self,
+//         owner_id: AccountId,
+//         receiver_id: AccountId,
+//         token_id: TokenId,
+//     ) -> bool {
+//         // Whether receiver wants to return token back to the sender, based on `nft_on_transfer`
+//         // call result.
+//         if let PromiseResult::Successful(value) = env::promise_result(0) {
+//             // As per the standard, the nft_on_transfer should return whether we should return the token to it's owner or not
+//             if let Ok(return_token) = near_sdk::serde_json::from_slice::<bool>(&value) {
+//                 // if we need don't need to return the token, we simply return true meaning everything went fine
+//                 if !return_token {
+//                     /*
+//                         since we've already transferred the token and nft_on_transfer returned false, we don't have to
+//                         revert the original transfer and thus we can just return true since nothing went wrong.
+//                     */
+//                     return true;
+//                 }
+//             }
+//         }
 
-        // get the token object if there is some token object
-        let mut token = if let Some(token) = self.tokens_by_id.get(&token_id) {
-            if token.owner_id != receiver_id {
-                // The token is not owned by the receiver anymore. Can't return it.
-                return true;
-            }
-            token
-        // if there isn't a token object, it was burned and so we return true
-        } else {
-            return true;
-        };
+//         // get the token object if there is some token object
+//         let mut token = if let Some(token) = self.tokens_by_id.get(&token_id) {
+//             if token.owner_id != receiver_id {
+//                 // The token is not owned by the receiver anymore. Can't return it.
+//                 return true;
+//             }
+//             token
+//         // if there isn't a token object, it was burned and so we return true
+//         } else {
+//             return true;
+//         };
 
 
-        // if at the end, we haven't returned true, that means that we should return the token to it's original owner
-        log!("Return {} from @{} to @{}", token_id, receiver_id, owner_id);
+//         // if at the end, we haven't returned true, that means that we should return the token to it's original owner
+//         log!("Return {} from @{} to @{}", token_id, receiver_id, owner_id);
 
-        // we remove the token from the receiver
-        self.internal_remove_token_from_owner(&receiver_id, &token_id);
+//         // we remove the token from the receiver
+//         self.internal_remove_token_from_owner(&receiver_id, &token_id);
 
-        // we add the token to the original owner
-        self.internal_add_token_to_owner(&owner_id, &token_id);
+//         // we add the token to the original owner
+//         self.internal_add_token_to_owner(&owner_id, &token_id);
 
-        // we change the token struct's owner to be the original owner
-        token.owner_id = owner_id;
+//         // we change the token struct's owner to be the original owner
+//         token.owner_id = owner_id;
 
-        // we inset the token back into the tokens_by_id collection
-        self.tokens_by_id.insert(&token_id, &token);
+//         // we inset the token back into the tokens_by_id collection
+//         self.tokens_by_id.insert(&token_id, &token);
 
-        // return false
-        false
-
-
-    }
-}
-
+//         // return false
+//         false
+//     }
+// }
 
 #[near_bindgen]
 impl NonFungibleTokenCore for Contract {
-
     //get the information for a specific token ID
     fn nft_token(&self, token_id: TokenId) -> Option<JsonToken> {
 
@@ -255,5 +249,14 @@ impl NonFungibleTokenCore for Contract {
                     )
             ).into()
 
+    }
+}
+
+#[near_bindgen]
+impl Contract {
+    #[private]
+    pub fn ok_go(&self, return_it: bool) -> PromiseOrValue<bool> {
+        log!("in ok_go, return_it={}", return_it);
+        PromiseOrValue::Value(return_it)
     }
 }

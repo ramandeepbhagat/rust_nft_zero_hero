@@ -15,6 +15,8 @@ use near_sdk::{serde::{self, Serialize, Deserialize}, json_types::{Base64VecU8, 
 use crate::internal::*;
 pub use crate::metadata::*;
 pub use crate::mint::*;
+pub use crate::token_reciever::*;
+pub use crate::token_resolver::*;
 pub use crate::nft_core::*;
 pub use crate::approval::*;
 pub use crate::royalty::*;
@@ -24,6 +26,8 @@ mod approval;
 mod enumeration;
 mod metadata;
 mod mint;
+mod token_reciever;
+mod token_resolver;
 mod nft_core;
 mod royalty;
 
